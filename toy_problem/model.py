@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-class Loss(nn.Module):
+class Loss_OD(nn.Module):
     def __init__(self,):
         super(Loss, self).__init__()
         
@@ -9,14 +9,13 @@ class Loss(nn.Module):
                 ((y-y_pred)**2/sigma_y**2).sum(1)).mean()
         return loss
     
-class L1Loss(nn.Module):
+class Loss_MSE(nn.Module):
     def __init__(self,):
-        super(L1Loss, self).__init__()
-        
-    def forward(self, y_pred, y):
+        super(Loss1, self).__init__()
+
+    def forward(self, y_pred, y, x_pred, x):
         loss = ((y-y_pred)**2).sum(1).mean()
         return loss
-
 
 class NN(nn.Module):
     def __init__(self,input_dim,output_dim=3, hidden=32, layers = 3, dropout=1e-10, sigma = 1.):
