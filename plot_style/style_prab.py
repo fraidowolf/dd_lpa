@@ -49,14 +49,14 @@ def load_preset(scale = 12/8,font_path='.'):
     plt.rcParams['font.size'] = 8*scale
     plt.rcParams['font.weight'] = 'normal' 
     plt.rcParams['axes.unicode_minus'] = False
-
-    plt.rcParams['text.latex.preamble'] = [
-           r'\usepackage{siunitx}',
-           r'\sisetup{detect-all}',
-           #r'\usepackage{helvet}',
-           r'\usepackage{sansmath}',
-           r'\sansmath'
-    ]
+   
+    #plt.rcParams['text.latex.preamble'] = [
+    #       r'\usepackage{siunitx}',
+    #       r'\sisetup{detect-all}',
+    #       #r'\usepackage{helvet}',
+    #       r'\usepackage{sansmath}',
+    #       r'\sansmath'
+    #]
 
     plt.rcParams['font.size'] = 8*scale
     plt.rcParams['axes.linewidth'] = 0.75*scale
@@ -103,6 +103,7 @@ def cmap_map(function, cmap):
     """ Applies function (which should operate on vectors of shape 3: [r, g, b]), on colormap cmap.
     This routine will break any discontinuous points in a colormap.
     """
+    
     cdict = cmap._segmentdata
     step_dict = {}
     # Firt get the list of points where the segments start or end

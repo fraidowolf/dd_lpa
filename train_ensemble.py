@@ -1,10 +1,10 @@
 #from torchensemble import BaggingRegressor,VotingRegressor,VotingClassifier  # voting is a classic ensemble strategy
-from ensemble.Bregressor_ import BaggingRegressor
+from ensemble.Bregressor_ import BaggingRegressor, pre_training
+from ensemble.utils.set_module import lr1, lr2
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torchvision
 from data_handling import load_data,Container,Normalize,Denormalize
 import os
 from torchensemble.utils.logging import set_logger
@@ -12,7 +12,7 @@ from torchensemble.utils import io
 import pickle
 
 
-class Loss_OD(nn.Module):
+class Loss(nn.Module):
     def __init__(self,):
         super(Loss, self).__init__()
         
@@ -20,31 +20,21 @@ class Loss_OD(nn.Module):
         loss = (((x-x_pred)**2/sigma_x**2).sum(1) + 
                 ((y-y_pred)**2/sigma_y**2).sum(1)).mean()
         return loss
-    
-class Loss_MSE(nn.Module):
-    def __init__(self,):
-        super(Loss1, self).__init__()
 
-    def forward(self, y_pred, y, x_pred, x):
-        loss = ((y-y_pred)**2).sum(1).mean()
-        return loss
-
-    
 class NN(nn.Module):
-    def __init__(self,input_dim,output_dim=3, hidden=32, layers = 3, dropout=1e-10, sigma = 1., activation=nn.ReLU()):
+    def __init__(self,input_dim,output_dim=3, hidden=32, layers = 3, dropout=1e-10, sigma = 1.):
         super(NN, self).__init__()
         self.sigma = sigma
         self.flatten = nn.Flatten()
         self.layers = nn.ModuleList()
-        self.activation = activation
         self.layers.append(nn.BatchNorm1d(input_dim))
         self.layers.append(nn.Linear(input_dim, hidden))
-        self.layers.append(self.activation)
+        self.layers.append(nn.Tanh())
         self.layers.append(nn.BatchNorm1d(hidden))
         
         for k in range(layers):
             self.layers.append(nn.Linear(hidden, hidden))
-            self.layers.append(self.activation)
+            self.layers.append(nn.Tanh())
             self.layers.append(nn.Dropout(p=dropout))
             self.layers.append(nn.BatchNorm1d(hidden))
             
@@ -55,36 +45,16 @@ class NN(nn.Module):
         for i, l in enumerate(self.layers):
             x = l(x)
         return x
-
-'''
-    
-class NN_ReLU(nn.Module):
-    def __init__(self,input_dim,output_dim=3, hidden=32, layers = 3, dropout=1e-10, sigma = 1.):
-        super(NN_ReLU, self).__init__()
-        self.sigma = sigma
-        self.flatten = nn.Flatten()
-        self.layers = nn.ModuleList()
-        self.layers.append(nn.BatchNorm1d(input_dim))
-        self.layers.append(nn.Linear(input_dim, hidden))
-        self.layers.append(nn.ReLU())
-        self.layers.append(nn.BatchNorm1d(hidden))
-        
-        for k in range(layers):
-            self.layers.append(nn.Linear(hidden, hidden))
-            self.layers.append(nn.ReLU())
-            self.layers.append(nn.Dropout(p=dropout))
-            self.layers.append(nn.BatchNorm1d(hidden))
-            
-        self.layers.append(nn.Linear(hidden, output_dim))
-
-    def forward(self, x):
-        x = self.flatten(x)
-        for i, l in enumerate(self.layers):
-            x = l(x)
-        return x
-'''
     
 def train(config):
+    from ensemble import Bregressor_
+    from ensemble.utils import set_module
+    
+    if 'pre_training' in config: Bregressor_.pre_training= config['pre_training']
+    if 'lr1' in config: set_module.lr1 = config['lr1']
+    if 'lr2' in config: set_module.lr2 = config['lr2']
+    if not 'norm' in config: config['norm'] = None
+    if not 'cuda' in config: config['cuda'] = False
 
     trainset, testset, norm  = load_data(config['path'],
                                 config['inputs'],
@@ -92,10 +62,8 @@ def train(config):
                                 samples=config['samples'],
                                 ratio=config['ratio'],
                                 start_ind = config['start_ind'],
-                                #norm=norm,
+                                norm=config['norm'],
                                 random=False)
-
-    
 
     trainset = Container(trainset)
     testset = Container(testset)
@@ -125,7 +93,7 @@ def train(config):
     ensemble = BaggingRegressor(
         estimator=nn.ModuleList(config['model']),                     
         n_estimators=config['estimators'], 
-        cuda=True,
+        cuda=config['cuda'],
         n_jobs=1,
     )
     

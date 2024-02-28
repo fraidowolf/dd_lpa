@@ -15,11 +15,13 @@ from joblib import Parallel, delayed
 from ._base import BaseClassifier, BaseRegressor
 from ._base import torchensemble_model_doc
 from torchensemble.utils import io
-from utils import set_module
+from .utils import set_module
 from torchensemble.utils import operator as op
 
 
 __all__ = ["BaggingClassifier", "BaggingRegressor"]
+global pre_training 
+pre_training = 50
 
 
 def _parallel_fit_per_epoch(
@@ -48,10 +50,10 @@ def _parallel_fit_per_epoch(
     est2 = estimator[1]
     opt1 = optimizer[0]
     opt2 = optimizer[1]
-    
+
     for batch_idx, elem in enumerate(train_loader):
 
-        if epoch > 50:
+        if epoch > pre_training:
             data, target = io.split_data_target(elem, device)
             batch_size = data[0].size(0)
             opt1.zero_grad()
@@ -64,12 +66,12 @@ def _parallel_fit_per_epoch(
             opt1.step()
             opt2.step()
 
-
         else:
             
             data, target = io.split_data_target(elem, device)
             batch_size = data[0].size(0)
             
+
             opt2.zero_grad()
             y_pred = est2(data[0])
             loss = criterion(y_pred, target, data[0], data[0], est1.sigma, est2.sigma)

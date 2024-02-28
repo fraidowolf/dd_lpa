@@ -5,33 +5,6 @@ import numpy as np
 from torch import nn
 
 
-class DISCNN(nn.Module):
-    def __init__(self,input_dim,output_dim=1,hidden=32,layers = 2):
-        super(DISCNN, self).__init__()
-        self.flatten = nn.Flatten()
-        
-        
-        self.layers = nn.ModuleList()
-        self.layers.append(nn.Linear(input_dim, hidden))
-        self.layers.append(nn.ReLU())
-        
-        for k in range(layers):
-            self.layers.append(nn.Linear(hidden, hidden))
-            self.layers.append(nn.ReLU())
-            
-        self.layers.append(nn.Linear(hidden, output_dim))
-        self.layers.append(nn.Sigmoid())
-
-    def forward(self, x):
-        x = self.flatten(x)
-        for i, l in enumerate(self.layers):
-            x = l(x)
-        return x
-
-    
-
-
-
 def Normalize(x,norm=None):
     if not norm:
         mean = x.mean(axis=0)
