@@ -22,19 +22,27 @@ class Loss(nn.Module):
         return loss
 
 class NN(nn.Module):
-    def __init__(self,input_dim,output_dim=3, hidden=32, layers = 3, dropout=1e-10, sigma = 1.):
+    def __init__(self,
+                 input_dim,
+                 output_dim=3, 
+                 hidden=32, 
+                 layers = 3, 
+                 dropout=1e-10, 
+                 sigma = 1.,
+                 activation=nn.Tanh()):
+        
         super(NN, self).__init__()
         self.sigma = sigma
         self.flatten = nn.Flatten()
         self.layers = nn.ModuleList()
         self.layers.append(nn.BatchNorm1d(input_dim))
         self.layers.append(nn.Linear(input_dim, hidden))
-        self.layers.append(nn.Tanh())
+        self.layers.append(activation)
         self.layers.append(nn.BatchNorm1d(hidden))
         
         for k in range(layers):
             self.layers.append(nn.Linear(hidden, hidden))
-            self.layers.append(nn.Tanh())
+            self.layers.append(activation)
             self.layers.append(nn.Dropout(p=dropout))
             self.layers.append(nn.BatchNorm1d(hidden))
             
@@ -55,6 +63,13 @@ def train(config):
     if 'lr2' in config: set_module.lr2 = config['lr2']
     if not 'norm' in config: config['norm'] = None
     if not 'cuda' in config: config['cuda'] = False
+    
+    if not 'activation' in config:
+        activation = nn.Tanh()
+    elif config['activation'] == 'ReLU':
+        activation = nn.ReLU()
+    elif config['activation'] == 'Tanh':
+        activation = nn.Tanh()
 
     trainset, testset, norm  = load_data(config['path'],
                                 config['inputs'],

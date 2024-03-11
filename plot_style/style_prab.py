@@ -1,6 +1,7 @@
 import matplotlib.font_manager as font_manager
 import matplotlib.pyplot as plt
-import matplotlib
+import matplotlib 
+from matplotlib.colors import ListedColormap
 import numpy as np
 import os
 
@@ -97,7 +98,38 @@ def load_preset(scale = 12/8,font_path='.'):
 
     plt.rcParams['savefig.transparent'] = True
     print('matplotlib preset loaded')
+
+def cmap_nicify(cmap, transparent=False, idx_white = 0, size_white = None):
+    """
+    Make the bottom of the colormap white
+    """
+    register = False
+    if type(cmap) == str:
+        cmap = matplotlib.cm.get_cmap(cmap)
+        register = True
+    if size_white is None:
+        size_white = cmap.N//5
+        
+    index_white = np.arange(2*size_white-1) - size_white + idx_white + 1
+    curve = np.sin(np.linspace(-np.pi/2, np.pi/2, 2*size_white-1))**2
+    clip = (index_white>=0)*(index_white<=(cmap.N-1))
+    my_cmap_rgba = cmap(np.arange(cmap.N))
+    # Set alpha
+    my_cmap_rgba[:,-1][index_white[clip][0]:index_white[clip][-1]+1] = curve[clip]
+    my_cmap_rgb = my_cmap_rgba.copy()
     
+    if not transparent:
+        # Transform alpha to color
+        my_cmap_rgb[:,0] = (1-my_cmap_rgba[:,-1])*1 + my_cmap_rgba[:,-1]*my_cmap_rgba[:,0]
+        my_cmap_rgb[:,1] = (1-my_cmap_rgba[:,-1])*1 + my_cmap_rgba[:,-1]*my_cmap_rgba[:,1]
+        my_cmap_rgb[:,2] = (1-my_cmap_rgba[:,-1])*1 + my_cmap_rgba[:,-1]*my_cmap_rgba[:,2]
+
+        my_cmap_rgb[:,-1] *= 0
+        my_cmap_rgb[:,-1] += 1
+    if register and not idx_white:
+        matplotlib.cm.register_cmap(name=cmap.name + '_w', cmap=ListedColormap(my_cmap_rgb))
+    else:
+        return ListedColormap(my_cmap_rgb)
     
 def cmap_map(function, cmap):
     """ Applies function (which should operate on vectors of shape 3: [r, g, b]), on colormap cmap.
