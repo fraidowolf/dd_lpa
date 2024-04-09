@@ -7,7 +7,7 @@ import os
 
 
 scale = 1
-colors = ['#ff4747ff','#58c0cbfc','#7acc8aff',]
+colors = ['#ff4747ff','#58c0cbfc','#7acc8aff','#3492dafd']
 
 
 # PRE figsize
