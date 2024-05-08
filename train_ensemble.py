@@ -1,6 +1,7 @@
-#from torchensemble import BaggingRegressor,VotingRegressor,VotingClassifier  # voting is a classic ensemble strategy
+
 from ensemble.Bregressor_ import BaggingRegressor, pre_training
-from ensemble.utils.set_module import lr1, lr2
+from ensemble import Bregressor_
+from ensemble.utils import set_module
 import numpy as np
 import torch
 import torch.nn as nn
@@ -55,9 +56,7 @@ class NN(nn.Module):
         return x
     
 def train(config):
-    from ensemble import Bregressor_
-    from ensemble.utils import set_module
-    
+
     if 'pre_training' in config: Bregressor_.pre_training= config['pre_training']
     if 'lr1' in config: set_module.lr1 = config['lr1']
     if 'lr2' in config: set_module.lr2 = config['lr2']
