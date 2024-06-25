@@ -3,6 +3,9 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 from torch import nn
+from sklearn.decomposition import PCA as PCA_
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 def Normalize(x,norm=None):
@@ -19,6 +22,18 @@ def Denormalize(x,norm):
     mean = norm[0]
     std = norm[1]
     return x*std + mean
+
+
+def PCA_transform(x, pca = None, n_components= 20): 
+    if not pca:
+        pca = Pipeline([('pca', PCA_(n_components=n_components,random_state=0)), ('scaling', StandardScaler())])
+        pca.fit_transform(x)  
+        
+    return pca.transform(x), pca
+
+
+def PCA_invtransform(x, pca):
+    return pca.inverse_transform(x)
 
 
 class Container(Dataset):
@@ -59,7 +74,9 @@ def load_data(path, inputs, outputs,
               val_shotnr=None, 
               norm=None, 
               random=False,
-              return_index=False):
+              return_index=False,
+              pca = None,
+              pca_components = 20):
 
     df = pd.read_hdf(path)[start_ind:start_ind+samples]
     
@@ -86,7 +103,25 @@ def load_data(path, inputs, outputs,
     index = df.index[f].values
     df_input = df_input[f]
     df_output = df_output[f]
-        
+
+    if pca:
+        pca_in = None
+        pca_out = None 
+        for i,pca_col in enumerate(pca):
+            if pca_col in inputs:
+                x_ = np.array(df_input[pca_col].to_list())
+                x_, pca_in = PCA_transform(x_,n_components=pca_components[i])
+                for j in range(pca_components[i]):
+                    df_input[pca_col+'_'+str(j)] = x_[:,j]
+                df_input = df_input.drop(columns=[pca_col])
+            if pca_col in outputs:
+                x_ = np.array(df_output[pca_col].to_list())
+                x_, pca_out = PCA_transform(x_,n_components=pca_components[i])
+                for j in range(pca_components[i]):
+                    df_output[pca_col+'_'+str(j)] = x_[:,j]
+                df_output = df_output.drop(columns=[pca_col])
+        columns = [df_input.columns.to_list(),df_output.columns.to_list()]
+
     if random:
         ind_train,ind_val = random_choice(df_input.shape[0],ratio)
     elif val_shotnr:
@@ -95,10 +130,11 @@ def load_data(path, inputs, outputs,
     else:
         ind = int(df_input.shape[0]*ratio)
         ind_train,ind_val = np.arange(0,ind),np.arange(ind,df_input.shape[0])
-    
+   
     df_input = df_input.values
     df_output = df_output.values
-    
+    print(df_input.shape,df_output.shape)
+
     if norm:
         Xtrain,Xnorm = Normalize(df_input[ind_train],norm[0])
         Ytrain,Ynorm = Normalize(df_output[ind_train],norm[1])
@@ -109,9 +145,13 @@ def load_data(path, inputs, outputs,
     Xtest,_ = Normalize(df_input[ind_val],norm=Xnorm)
     Ytest,_ = Normalize(df_output[ind_val],norm=Ynorm)
 
+    out = [[Xtrain,Ytrain], [Xtest,Ytest], [Xnorm,Ynorm]]
     if return_index:
-        return [Xtrain,Ytrain], [Xtest,Ytest], [Xnorm,Ynorm], [index[ind_train],index[ind_val]]
-    else:
-        return [Xtrain,Ytrain], [Xtest,Ytest], [Xnorm,Ynorm]
-    
+        out.append([index[ind_train],index[ind_val]])
+
+    if pca:
+        out.append([pca_in,pca_out])
+        out.append(columns)
+
+    return out   
     

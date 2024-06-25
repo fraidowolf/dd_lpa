@@ -62,7 +62,12 @@ def train(config):
     if 'lr2' in config: set_module.lr2 = config['lr2']
     if not 'norm' in config: config['norm'] = None
     if not 'cuda' in config: config['cuda'] = False
-    
+    if not 'pca' in config: 
+        config['pca'] = None
+        config['pca_components'] = None
+    if ('pca' in config) and (not 'pca_components' in config): 
+        config['pca_components'] = [20]*len(config['pca'])
+
     if not 'activation' in config:
         activation = nn.Tanh()
     elif config['activation'] == 'ReLU':
@@ -70,15 +75,28 @@ def train(config):
     elif config['activation'] == 'Tanh':
         activation = nn.Tanh()
 
-    trainset, testset, norm  = load_data(config['path'],
-                                config['inputs'],
-                                config['outputs'],
-                                samples=config['samples'],
-                                ratio=config['ratio'],
-                                start_ind = config['start_ind'],
-                                norm=config['norm'],
-                                random=False)
+    print(config['pca_components'])
+    D  = load_data(config['path'],
+                   config['inputs'],
+                   config['outputs'],
+                   samples=config['samples'],
+                   ratio=config['ratio'],
+                   start_ind = config['start_ind'],
+                   norm=config['norm'],
+                   random=False,
+                   pca=config['pca'],
+                   pca_components = config['pca_components'],)
 
+    trainset = D[0]
+    testset = D[1]
+    norm = D[2]
+
+    if config['pca']:
+        config['pca_transform'] = D[3]
+        #config['inputs'] = D[4][0]
+        #config['outputs'] = D[4][1]
+
+    print(trainset[0].shape,trainset[1].shape)
     trainset = Container(trainset)
     testset = Container(testset)
     
